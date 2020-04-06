@@ -1,13 +1,13 @@
 name: Mark issues and pull requests as stale
 on:
   schedule:
-  - cron: "10 * * * *"
+  - cron: "30 * * * *"
 jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
       - name: Mark issues and pull requests as stale
-        uses: keisaacson/stale@v1.2.0
+        uses: keisaacson/stale@v1.2.1
         with:
           repo-token: ${{ secrets.STALE_TOKEN }}
           project-id: 4053923
