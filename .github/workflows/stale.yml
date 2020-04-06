@@ -1,0 +1,17 @@
+name: Mark issues and pull requests as stale
+on:
+  schedule:
+  - cron: "10 * * * *"
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark stale issues
+        uses: keisaacson/stale@v1.2.0
+        with:
+          repo-token: ${{ secrets.STALE_TOKEN }}
+          project-id: 4053923
+          stale-issue-message: 'Test: stale issue message'
+          stale-issue-label: 'no-issue-activity'
+          days-before-stale: 1
+          exempt-issue-label: 'onboarding'
