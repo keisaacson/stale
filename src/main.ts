@@ -2,11 +2,14 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as Octokit from '@octokit/rest';
 
-type Issue = Octokit.IssuesListForRepoResponseItem;
-type IssueLabel = Octokit.IssuesListForRepoResponseItemLabelsItem;
+type ProjectColumn = Octokit.ProjectsListColumnsResponseItem;
+type ProjectCard = Octokit.ProjectsListCardsResponseItem;
+type Issue = Octokit.IssuesGetResponse;
+type IssueLabel = Octokit.IssuesGetResponseLabelsItem;
 
 type Args = {
   repoToken: string;
+  projectId: number;
   staleIssueMessage: string;
   stalePrMessage: string;
   daysBeforeStale: number;
@@ -21,10 +24,10 @@ type Args = {
 async function run() {
   try {
     const args = getAndValidateArgs();
-
     const client = new github.GitHub(args.repoToken);
     await processIssues(client, args, args.operationsPerRun);
   } catch (error) {
+    console.log("Error: " + error);
     core.error(error);
     core.setFailed(error.message);
   }
@@ -36,27 +39,25 @@ async function processIssues(
   operationsLeft: number,
   page: number = 1
 ): Promise<number> {
-  const issues = await client.issues.listForRepo({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
-    state: 'open',
-    per_page: 100,
-    page: page
-  });
+  const issues = await getIssuesForProject(
+    client,
+    args.projectId,
+    page
+  );
 
   operationsLeft -= 1;
 
-  if (issues.data.length === 0 || operationsLeft === 0) {
+  if (issues.length === 0 || operationsLeft === 0) {
     return operationsLeft;
   }
 
-  for (var issue of issues.data.values()) {
-    core.debug(`found issue: ${issue.title} last updated ${issue.updated_at}`);
+  for (var issue of issues) {
+    console.log(`Found issue: ${issue.title} last updated ${issue.updated_at}`);
     let isPr = !!issue.pull_request;
 
     let staleMessage = isPr ? args.stalePrMessage : args.staleIssueMessage;
     if (!staleMessage) {
-      core.debug(`skipping ${isPr ? 'pr' : 'issue'} due to empty message`);
+      console.log(`Skipping ${isPr ? 'pr' : 'issue'} due to empty message`);
       continue;
     }
 
@@ -90,6 +91,61 @@ async function processIssues(
   return await processIssues(client, args, operationsLeft, page + 1);
 }
 
+async function getIssuesForProject(
+  client: github.GitHub,
+  projectId: number,
+  page: number = 1
+): Promise<Array<Issue>> {
+  const columns = await client.projects.listColumns({
+    project_id: projectId,
+    page: page,
+    per_page: 100
+  })
+
+  var cards = [];
+  for (var column of columns.data) {
+    let columnCards = await client.projects.listCards({
+      column_id: column.id
+    })
+    cards = cards.concat(columnCards.data)
+  }
+
+  var issues = [];
+  for (var card of cards) {
+    if (!card.content_url) {
+      console.log("Skipping Card " + card.url + " - not an issue")
+      continue;
+    }
+
+    let splitUrl = card.content_url.split("/")
+    let contentNumber = splitUrl.pop()
+    let contentType = splitUrl.pop()
+    let repo = splitUrl.pop()
+    let owner = splitUrl.pop()
+
+    if (contentType !== "issues") {
+      console.log("Skipping Card " + card.content_url + " - not an issue")
+      continue;
+    }
+
+    let issue = await client.issues.get({
+      issue_number: contentNumber,
+      repo: repo,
+      owner: owner
+    })
+
+    if (issue.data.state === 'closed') {
+      console.log("Skipping Issue '" + issue.data.title + "' - issue is closed")
+      continue;
+    } else if (issue.data.state === 'open') {
+      console.log("Adding Issue '" + issue.data.title + "' to processing queue");
+      issues.push(issue.data);
+    }
+  }
+
+  return issues;
+}
+
 function isLabeled(issue: Issue, label: string): boolean {
   const labelComparer: (l: IssueLabel) => boolean = l =>
     label.localeCompare(l.name, undefined, {sensitivity: 'accent'}) === 0;
@@ -109,18 +165,24 @@ async function markStale(
   staleMessage: string,
   staleLabel: string
 ): Promise<number> {
-  core.debug(`marking issue${issue.title} as stale`);
+  console.log(`Marking issue ${issue.title} as stale`);
+
+  let splitUrl = issue.html_url.split("/");
+  let _contentNumber = splitUrl.pop();
+  let _contentType = splitUrl.pop();
+  let repo = splitUrl.pop();
+  let owner = splitUrl.pop();
 
   await client.issues.createComment({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
+    owner: owner,
+    repo: repo,
     issue_number: issue.number,
     body: staleMessage
   });
 
   await client.issues.addLabels({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
+    owner: owner,
+    repo: repo,
     issue_number: issue.number,
     labels: [staleLabel]
   });
@@ -132,7 +194,7 @@ async function closeIssue(
   client: github.GitHub,
   issue: Issue
 ): Promise<number> {
-  core.debug(`closing issue ${issue.title} for being stale`);
+  console.log(`Closing issue ${issue.title} for being stale`);
 
   await client.issues.update({
     owner: github.context.repo.owner,
@@ -147,6 +209,9 @@ async function closeIssue(
 function getAndValidateArgs(): Args {
   const args = {
     repoToken: core.getInput('repo-token', {required: true}),
+    projectId: parseInt(
+      core.getInput('project-id', {required: true})
+    ),
     staleIssueMessage: core.getInput('stale-issue-message'),
     stalePrMessage: core.getInput('stale-pr-message'),
     daysBeforeStale: parseInt(

@@ -5,6 +5,9 @@ inputs:
   repo-token:
     description: 'Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}'
     required: true
+  project-id:
+    description: 'Project database ID, NOT the project number.'
+    required: true
   stale-issue-message:
     description: 'The message to post on the issue when tagging it. If none provided, will not mark issues stale.'
   stale-pr-message:
