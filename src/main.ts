@@ -27,7 +27,7 @@ async function run() {
     const client = new github.GitHub(args.repoToken);
     await processIssues(client, args, args.operationsPerRun);
   } catch (error) {
-    console.log("Error: " + error);
+    console.log(`Error: ${error}`);
     core.error(error);
     core.setFailed(error.message);
   }
@@ -52,7 +52,7 @@ async function processIssues(
   }
 
   for (var issue of issues) {
-    console.log(`Found issue: ${issue.title} last updated ${issue.updated_at}`);
+    console.log(`Issue '${issue.title}' last updated ${issue.updated_at}`);
     let isPr = !!issue.pull_request;
 
     let staleMessage = isPr ? args.stalePrMessage : args.staleIssueMessage;
@@ -65,11 +65,13 @@ async function processIssues(
     let exemptLabel = isPr ? args.exemptPrLabel : args.exemptIssueLabel;
 
     if (exemptLabel && isLabeled(issue, exemptLabel)) {
+      console.log(`Issue '${issue.title}' is exempt with label ${exemptLabel}`);
       continue;
     } else if (isLabeled(issue, staleLabel)) {
       if (wasLastUpdatedBefore(issue, args.daysBeforeClose)) {
         operationsLeft -= await closeIssue(client, issue);
       } else {
+        console.log(`Issue '${issue.title}' has not been stale for ${args.daysBeforeClose} days`);
         continue;
       }
     } else if (wasLastUpdatedBefore(issue, args.daysBeforeStale)) {
@@ -113,7 +115,7 @@ async function getIssuesForProject(
   var issues = [];
   for (var card of cards) {
     if (!card.content_url) {
-      console.log("Skipping Card " + card.url + " - not an issue")
+      console.log(`Skipping card ${card.url} - not an issue`);
       continue;
     }
 
@@ -124,7 +126,7 @@ async function getIssuesForProject(
     let owner = splitUrl.pop()
 
     if (contentType !== "issues") {
-      console.log("Skipping Card " + card.content_url + " - not an issue")
+      console.log(`Skipping card ${card.content_url} - not an issue`);
       continue;
     }
 
@@ -135,10 +137,10 @@ async function getIssuesForProject(
     })
 
     if (issue.data.state === 'closed') {
-      console.log("Skipping Issue '" + issue.data.title + "' - issue is closed")
+      console.log(`Skipping issue ${issue.data.title} - issue is closed`);
       continue;
     } else if (issue.data.state === 'open') {
-      console.log("Adding Issue '" + issue.data.title + "' to processing queue");
+      console.log(`Adding issue '${issue.data.title}' to processing queue`);
       issues.push(issue.data);
     }
   }
@@ -165,7 +167,7 @@ async function markStale(
   staleMessage: string,
   staleLabel: string
 ): Promise<number> {
-  console.log(`Marking issue ${issue.title} as stale`);
+  console.log(`Marking issue '${issue.title}' as stale`);
 
   let splitUrl = issue.html_url.split("/");
   let _contentNumber = splitUrl.pop();
@@ -194,7 +196,7 @@ async function closeIssue(
   client: github.GitHub,
   issue: Issue
 ): Promise<number> {
-  console.log(`Closing issue ${issue.title} for being stale`);
+  console.log(`Closing issue '${issue.title}' for being stale`);
 
   await client.issues.update({
     owner: github.context.repo.owner,

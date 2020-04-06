@@ -9497,7 +9497,7 @@ function processIssues(client, args, operationsLeft, page) {
                 case 2:
                     if (!(_i < issues_1.length)) return [3 /*break*/, 11];
                     issue = issues_1[_i];
-                    console.log("Found issue: " + issue.title + " last updated " + issue.updated_at);
+                    console.log("Issue '" + issue.title + "' last updated " + issue.updated_at);
                     isPr = !!issue.pull_request;
                     staleMessage = isPr ? args.stalePrMessage : args.staleIssueMessage;
                     if (!staleMessage) {
@@ -9507,6 +9507,7 @@ function processIssues(client, args, operationsLeft, page) {
                     staleLabel = isPr ? args.stalePrLabel : args.staleIssueLabel;
                     exemptLabel = isPr ? args.exemptPrLabel : args.exemptIssueLabel;
                     if (!(exemptLabel && isLabeled(issue, exemptLabel))) return [3 /*break*/, 3];
+                    console.log("Issue '" + issue.title + "' is exempt with label " + exemptLabel);
                     return [3 /*break*/, 10];
                 case 3:
                     if (!isLabeled(issue, staleLabel)) return [3 /*break*/, 7];
@@ -9516,7 +9517,9 @@ function processIssues(client, args, operationsLeft, page) {
                 case 4:
                     operationsLeft = _a - _c.sent();
                     return [3 /*break*/, 6];
-                case 5: return [3 /*break*/, 10];
+                case 5:
+                    console.log("Issue '" + issue.title + "' has not been stale for " + args.daysBeforeClose + " days");
+                    return [3 /*break*/, 10];
                 case 6: return [3 /*break*/, 9];
                 case 7:
                     if (!wasLastUpdatedBefore(issue, args.daysBeforeStale)) return [3 /*break*/, 9];
@@ -9577,7 +9580,7 @@ function getIssuesForProject(client, projectId, page) {
                     if (!(_b < cards_1.length)) return [3 /*break*/, 9];
                     card = cards_1[_b];
                     if (!card.content_url) {
-                        console.log("Skipping Card " + card.url + " - not an issue");
+                        console.log("Skipping card " + card.url + " - not an issue");
                         return [3 /*break*/, 8];
                     }
                     splitUrl = card.content_url.split("/");
@@ -9586,7 +9589,7 @@ function getIssuesForProject(client, projectId, page) {
                     repo = splitUrl.pop();
                     owner = splitUrl.pop();
                     if (contentType !== "issues") {
-                        console.log("Skipping Card " + card.content_url + " - not an issue");
+                        console.log("Skipping card " + card.content_url + " - not an issue");
                         return [3 /*break*/, 8];
                     }
                     return [4 /*yield*/, client.issues.get({
@@ -9597,11 +9600,11 @@ function getIssuesForProject(client, projectId, page) {
                 case 7:
                     issue = _c.sent();
                     if (issue.data.state === 'closed') {
-                        console.log("Skipping Issue '" + issue.data.title + "' - issue is closed");
+                        console.log("Skipping issue " + issue.data.title + " - issue is closed");
                         return [3 /*break*/, 8];
                     }
                     else if (issue.data.state === 'open') {
-                        console.log("Adding Issue '" + issue.data.title + "' to processing queue");
+                        console.log("Adding issue '" + issue.data.title + "' to processing queue");
                         issues.push(issue.data);
                     }
                     _c.label = 8;
@@ -9630,7 +9633,7 @@ function markStale(client, issue, staleMessage, staleLabel) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    console.log("Marking issue " + issue.title + " as stale");
+                    console.log("Marking issue '" + issue.title + "' as stale");
                     splitUrl = issue.html_url.split("/");
                     _contentNumber = splitUrl.pop();
                     _contentType = splitUrl.pop();
@@ -9662,7 +9665,7 @@ function closeIssue(client, issue) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    console.log("Closing issue " + issue.title + " for being stale");
+                    console.log("Closing issue '" + issue.title + "' for being stale");
                     return [4 /*yield*/, client.issues.update({
                             owner: github.context.repo.owner,
                             repo: github.context.repo.repo,

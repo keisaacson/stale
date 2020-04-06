@@ -6,7 +6,7 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-      - name: Mark stale issues
+      - name: Mark issues and pull requests as stale
         uses: keisaacson/stale@v1.2.0
         with:
           repo-token: ${{ secrets.STALE_TOKEN }}
