@@ -64,3 +64,13 @@ jobs:
         stale-pr-label: 'no-pr-activity'
         exempt-pr-label: 'awaiting-approval'
 ```
+
+### Contributing
+- Make changes to the typescript [file](src/main.ts)
+- Generate the javascript changes by running `tsc src/main.ts`
+- Generate the dist package by running `ncc build src/main.js`
+- You should see diffs for [src/main.ts](src/main.ts), [src/main.js](src/main.js), and [dist/index.js](dist/index.js)
+- Commit those changes
+- Update the version number in [package.json](package.json)
+- Commit and tag that commit with the same version as in package.json
+- Update your workflow to use the new version
