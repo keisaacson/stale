@@ -198,9 +198,15 @@ async function closeIssue(
 ): Promise<number> {
   console.log(`Closing issue '${issue.title}' for being stale`);
 
+  let splitUrl = issue.html_url.split("/");
+  let _contentNumber = splitUrl.pop();
+  let _contentType = splitUrl.pop();
+  let repo = splitUrl.pop();
+  let owner = splitUrl.pop();
+
   await client.issues.update({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
+    owner: owner,
+    repo: repo,
     issue_number: issue.number,
     state: 'closed'
   });

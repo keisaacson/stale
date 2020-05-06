@@ -9662,13 +9662,19 @@ function markStale(client, issue, staleMessage, staleLabel) {
 }
 function closeIssue(client, issue) {
     return __awaiter(this, void 0, void 0, function () {
+        var splitUrl, _contentNumber, _contentType, repo, owner;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     console.log("Closing issue '" + issue.title + "' for being stale");
+                    splitUrl = issue.html_url.split("/");
+                    _contentNumber = splitUrl.pop();
+                    _contentType = splitUrl.pop();
+                    repo = splitUrl.pop();
+                    owner = splitUrl.pop();
                     return [4 /*yield*/, client.issues.update({
-                            owner: github.context.repo.owner,
-                            repo: github.context.repo.repo,
+                            owner: owner,
+                            repo: repo,
                             issue_number: issue.number,
                             state: 'closed'
                         })];
