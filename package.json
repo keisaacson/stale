@@ -1,6 +1,6 @@
 {
   "name": "stale-issues-by-project",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "description": "Warns and then closes issues and PRs that have had no activity for a specified amount of time.",
   "main": "lib/main.js",
   "scripts": {
